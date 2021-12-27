@@ -7,11 +7,27 @@ import json
 
 def setup():
     keys = getKeys()
-    login(keys)
+    return keys
+
+
+def setupLang():
+    global currentLanguage
+    languages = getLanguage()
+    print(languages)
+    return languages[currentLanguage]
+
+
+def getLanguage():
+    global languagesPath
+    languages = openJSON(languagesPath)
+
+    if languages == {}:
+        languages = createDefaultLanguages(languagesPath)
+    return languages
 
 
 def getKeys():
-    keysPath = "keys.json"
+    global keysPath
     keys = openJSON(keysPath)
 
     if keys == {}:
@@ -20,12 +36,27 @@ def getKeys():
     return keys
 
 
+def createDefaultLanguages(path):
+    english = {
+        "pasteTelegramToken": "Paste the telegram token below",
+        "newKeysFileCreated": "New keys file created!"
+    }
+    spanish = {
+        "pasteTelegramToken": "xdddd toekn de telehgram",
+        "newKeysFileCreated": "pt 2"
+    }
+    lang = {"en": english,
+            "es": spanish}
+    writeJSON(path, lang)
+    return lang
+
+
 def createKeys(path):
-    print("\nPaste the telegram token below")
+    print("\n" + LANGUAGES["pasteTelegramToken"])
     token = input("Token: ")
     data = {"telegramToken": token}
     writeJSON(path, data)
-    print("New keys file created!")
+    print(LANGUAGES["newKeysFileCreated"])
     return data
 
 
@@ -100,4 +131,11 @@ def messageHandler(update, context):
 
 
 if __name__ == '__main__':
-    setup()
+    # Defaults
+    keysPath = "keys.json"
+    languagesPath = "lang.json"
+    currentLanguage = "es"
+    LANGUAGES = setupLang()
+    KEYS = setup()
+
+    login(KEYS)
