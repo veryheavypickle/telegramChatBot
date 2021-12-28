@@ -13,7 +13,6 @@ def setup():
 def setupLang():
     global currentLanguage
     languages = getLanguage()
-    print(languages)
     return languages[currentLanguage]
 
 
@@ -39,11 +38,15 @@ def getKeys():
 def createDefaultLanguages(path):
     english = {
         "pasteTelegramToken": "Paste the telegram token below",
-        "newKeysFileCreated": "New keys file created!"
+        "newKeysFileCreated": "New keys file created!",
+        "loginMessage": "logging in...",
+        "loginSuccess": "logged in and chat started!"
     }
     spanish = {
-        "pasteTelegramToken": "xdddd toekn de telehgram",
-        "newKeysFileCreated": "pt 2"
+        "pasteTelegramToken": "Pegue el token de telegrama a continuación",
+        "newKeysFileCreated": "¡Nuevo archivo de llaves creado!",
+        "loginMessage": "entrando...",
+        "loginSuccess": "¡se ha conectado y el chat ha comenzado!"
     }
     lang = {"en": english,
             "es": spanish}
@@ -52,6 +55,7 @@ def createDefaultLanguages(path):
 
 
 def createKeys(path):
+    global LANGUAGES
     print("\n" + LANGUAGES["pasteTelegramToken"])
     token = input("Token: ")
     data = {"telegramToken": token}
@@ -77,7 +81,8 @@ def writeJSON(path, data):
 
 # Telegram login
 def login(keys):
-    print("logging in...")
+    global LANGUAGES
+    print(LANGUAGES["loginMessage"])
     updater = Updater(token=keys["telegramToken"], use_context=True)
     dispatcher = updater.dispatcher
     handlers = [MessageHandler(Filters.text & (~Filters.command), messageHandler),
@@ -101,7 +106,7 @@ def login(keys):
     for handler in handlers:
         dispatcher.add_handler(handler)
     updater.start_polling()
-    print("logged in and chat started!")
+    print(LANGUAGES["loginSuccess"])
 
 
 # Telegram command/message handlers
