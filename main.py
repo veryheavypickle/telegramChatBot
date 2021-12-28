@@ -3,15 +3,13 @@ from telegram.ext import Updater
 from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler, Filters
 import json
+import os
 
 
 def setup():
-    keys = getKeys()
-    return keys
-
-
-def setupLang():
-    global currentLanguage
+    global currentLanguage, usersDir
+    if not os.path.isdir(usersDir):
+        os.mkdir(usersDir)
     languages = getLanguage()
     return languages[currentLanguage]
 
@@ -25,14 +23,16 @@ def getLanguage():
     return languages
 
 
-def getKeys():
-    global keysPath
-    keys = openJSON(keysPath)
+def getTelegramToken():
+    global credentialsPath
+    token = openJSON(credentialsPath)
 
-    if keys == {}:
-        keys = createKeys(keysPath)
+    if token == {}:
+        token = createTelegramToken()
 
-    return keys
+    token = testTelegramToken(token=token["telegramToken"])
+
+    return token
 
 
 def createDefaultLanguages(path):
@@ -40,13 +40,15 @@ def createDefaultLanguages(path):
         "pasteTelegramToken": "Paste the telegram token below",
         "newKeysFileCreated": "New keys file created!",
         "loginMessage": "logging in...",
-        "loginSuccess": "logged in and chat started!"
+        "loginSuccess": "logged in and chat started!",
+        "invalidToken": "Invalid token"
     }
     spanish = {
-        "pasteTelegramToken": "Pegue el token de telegrama a continuación",
+        "pasteTelegramToken": "Pegue el token de telegram a continuación",
         "newKeysFileCreated": "¡Nuevo archivo de llaves creado!",
         "loginMessage": "entrando...",
-        "loginSuccess": "¡se ha conectado y el chat ha comenzado!"
+        "loginSuccess": "¡se ha conectado y el chat ha comenzado!",
+        "invalidToken": "Token no válido"
     }
     lang = {"en": english,
             "es": spanish}
@@ -54,14 +56,44 @@ def createDefaultLanguages(path):
     return lang
 
 
-def createKeys(path):
-    global LANGUAGES
-    print("\n" + LANGUAGES["pasteTelegramToken"])
-    token = input("Token: ")
+def createTelegramToken(token=None, testToken=True):
+    global LANGUAGES, credentialsPath
+
+    if testToken:
+        token = testTelegramToken(token=token)
+
     data = {"telegramToken": token}
-    writeJSON(path, data)
+    writeJSON(credentialsPath, data)
     print(LANGUAGES["newKeysFileCreated"])
     return data
+
+
+def testTelegramToken(token=None):
+    # Tests the telegram token
+    global LANGUAGES
+
+    initialToken = token
+
+    if token is None:
+        print("\n" + LANGUAGES["pasteTelegramToken"])
+        token = str(input("Token: "))
+    tokenValid = False
+    while not tokenValid:
+        try:
+            # Tests if the token is valid
+            updater = Updater(token=token, use_context=True)
+            updater.start_polling()
+            updater.stop()
+            tokenValid = True
+
+            if initialToken != token:
+                # If the test has changed the token, save the new token
+                createTelegramToken(token=token, testToken=False)
+        except (telegram.error.InvalidToken, telegram.error.Unauthorized):
+            print(LANGUAGES["invalidToken"])
+            token = str(input("Token: "))
+
+    return token
 
 
 def openJSON(path):
@@ -80,10 +112,10 @@ def writeJSON(path, data):
 
 
 # Telegram login
-def login(keys):
+def login(token):
     global LANGUAGES
     print(LANGUAGES["loginMessage"])
-    updater = Updater(token=keys["telegramToken"], use_context=True)
+    updater = Updater(token=token, use_context=True)
     dispatcher = updater.dispatcher
     handlers = [MessageHandler(Filters.text & (~Filters.command), messageHandler),
                 CommandHandler('start', start)]
@@ -137,10 +169,11 @@ def messageHandler(update, context):
 
 if __name__ == '__main__':
     # Defaults
-    keysPath = "keys.json"
-    languagesPath = "lang.json"
+    usersDir = "Users"
+    credentialsPath = usersDir + "/credentials.json"
+    languagesPath = usersDir + "/lang.json"
     currentLanguage = "es"
-    LANGUAGES = setupLang()
-    KEYS = setup()
+    LANGUAGES = setup()
+    TOKEN = getTelegramToken()
 
-    login(KEYS)
+    login(TOKEN)
